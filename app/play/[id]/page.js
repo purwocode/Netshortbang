@@ -1,34 +1,107 @@
-import { notFound } from "next/navigation";
-import Player from "./Player";
+"use client";
 
-async function getDetail(shortPlayId) {
-  const res = await fetch(
-    `https://netshort.sansekai.my.id/api/netshort/allepisode?shortPlayId=${shortPlayId}`,
-    { cache: "no-store" }
-  );
+import { useEffect, useRef, useState } from "react";
+import Hls from "hls.js";
 
-  if (!res.ok) throw new Error("Fetch gagal");
-  return res.json();
-}
+export default function Player({ episodes }) {
+  const [index, setIndex] = useState(0);
+  const videoRef = useRef(null);
+  const hlsRef = useRef(null);
 
-export default async function PlayPage({ params }) {
-  const { id: shortPlayId } = await params;
+  const current = episodes[index];
 
-  if (!shortPlayId) notFound();
+  // Ambil video terbaik otomatis (1080 > 720 > 540 > 360 > 144)
+  const src =
+    current?.videos?.sort((a, b) => (b.quality || 0) - (a.quality || 0))?.[0]?.url;
 
-  const data = await getDetail(shortPlayId);
+  // Ambil semua subtitle
+  const subtitles = current?.subtitle || [];
 
-  if (!data?.shortPlayEpisodeInfos?.length) {
-    notFound();
-  }
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    // 🔄 Cleanup HLS lama
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    // 🔄 Reset video
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+
+    // ▶️ Load video
+    if (src.includes(".m3u8") && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hlsRef.current = hls;
+    } else {
+      video.src = src;
+    }
+
+    video.play().catch(() => {});
+  }, [index, src]);
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-4">
-        {data.shortPlayName}
-      </h1>
+    <div>
+      {/* VIDEO */}
+      <div className="aspect-video bg-black rounded overflow-hidden mb-4">
+        <video ref={videoRef} controls playsInline className="w-full h-full">
+          {subtitles.map((sub, i) => (
+            <track
+              key={i}
+              kind="subtitles"
+              src={`/api/subtitle?url=${encodeURIComponent(sub.url)}`}
+              srcLang={sub.lang?.split("_")[0] || "id"}
+              label={sub.lang || "Subtitle"}
+              default={i === 0}
+            />
+          ))}
+        </video>
+      </div>
 
-      <Player episodes={data.shortPlayEpisodeInfos} />
-    </main>
+      {/* PREV / NEXT */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setIndex(i => Math.max(0, i - 1))}
+          disabled={index === 0}
+          className="px-3 py-1 border rounded disabled:opacity-40"
+        >
+          ⬅ Prev
+        </button>
+
+        <span className="text-sm font-medium">
+          Episode {index + 1} / {episodes.length}
+        </span>
+
+        <button
+          onClick={() => setIndex(i => Math.min(episodes.length - 1, i + 1))}
+          disabled={index === episodes.length - 1}
+          className="px-3 py-1 border rounded disabled:opacity-40"
+        >
+          Next ➡
+        </button>
+      </div>
+
+      {/* EPISODE LIST */}
+      <div className="flex flex-wrap gap-2">
+        {episodes.map((ep, i) => (
+          <button
+            key={ep.id ?? i}
+            onClick={() => setIndex(i)}
+            className={`px-3 py-1 text-xs rounded border transition ${
+              i === index
+                ? "bg-black text-white border-black"
+                : "bg-white hover:bg-gray-100"
+            }`}
+          >
+            Ep {ep.episode ?? i + 1}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
