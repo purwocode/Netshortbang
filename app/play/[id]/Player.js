@@ -3,20 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
-export default function Player({ episodes = [] }) {
+export default function Player({ episodes }) {
   const [index, setIndex] = useState(0);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
-  // 🔹 Ambil episode saat ini, aman walau episodes kosong
-  const current = episodes[index] ?? {};
-
-  // 🔹 Ambil video terbaik otomatis (1080 > 720 > 540 > 360 > 144)
-  const src =
-    current?.videos?.sort((a, b) => (b.quality || 0) - (a.quality || 0))?.[0]
-      ?.url;
-
-  // 🔹 Ambil semua subtitle
+  const current = episodes[index];
+  const src = current?.videos?.[0]?.url;
   const subtitles = current?.subtitle || [];
 
   useEffect(() => {
@@ -29,6 +22,7 @@ export default function Player({ episodes = [] }) {
       hlsRef.current = null;
     }
 
+    // 🔄 Reset video
     video.pause();
     video.removeAttribute("src");
     video.load();
@@ -67,7 +61,7 @@ export default function Player({ episodes = [] }) {
       {/* PREV / NEXT */}
       <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+          onClick={() => setIndex(i => Math.max(0, i - 1))}
           disabled={index === 0}
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
@@ -79,8 +73,8 @@ export default function Player({ episodes = [] }) {
         </span>
 
         <button
-          onClick={() => setIndex((i) => Math.min(episodes.length - 1, i + 1))}
-          disabled={index === episodes.length - 1 || episodes.length === 0}
+          onClick={() => setIndex(i => Math.min(episodes.length - 1, i + 1))}
+          disabled={index === episodes.length - 1}
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
           Next ➡
