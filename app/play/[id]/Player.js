@@ -1,111 +1,36 @@
-"use client";
+import { notFound } from "next/navigation";
+import Player from "./Player";
 
-import { useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
+async function getDetail(id) {
+  const res = await fetch(
+    `https://apiku-bucin-campuran.vercel.app/api/episode?id=${id}`,
+    { cache: "no-store" }
+  );
 
-export default function Player({ episodes }) {
-  const [index, setIndex] = useState(0);
-  const videoRef = useRef(null);
-  const hlsRef = useRef(null);
+  if (!res.ok) throw new Error("Fetch gagal");
+  return res.json();
+}
 
-  const current = episodes[index];
-  const src = current?.playVoucher;
-  const subtitles = current?.subtitleList || [];
+export default async function PlayPage({ params }) {
+  // ✅ unwrap params jika Promise
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
+  if (!id) notFound();
 
-    // 🔄 Cleanup HLS lama
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+  const data = await getDetail(id);
 
-    // 🔄 Reset video
-    video.pause();
-    video.removeAttribute("src");
-    video.load();
-
-    // ▶️ Load video
-    if (src.includes(".m3u8") && Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hlsRef.current = hls;
-    } else {
-      video.src = src;
-    }
-
-    video.play().catch(() => {});
-  }, [index]); // ⚠️ jangan ubah dependency
+  if (!data?.episodes?.length) {
+    notFound();
+  }
 
   return (
-    <div>
-      {/* VIDEO */}
-      <div className="aspect-video bg-black rounded overflow-hidden mb-4">
-        <video
-          ref={videoRef}
-          controls
-          playsInline
-          className="w-full h-full"
-        >
-          {/* SUBTITLE */}
-          {subtitles.map((sub, i) => (
-            <track
-              key={i}
-              kind="subtitles"
-              src={`/api/subtitle?url=${encodeURIComponent(sub.url)}`}
-              srcLang={sub.subtitleLanguage?.split("_")[0] || "id"}
-              label={sub.subtitleLanguage || "Subtitle"}
-              default={i === 0}
-            />
-          ))}
-        </video>
-      </div>
+    <main className="max-w-5xl mx-auto px-4 py-6">
+      <h1 className="text-2xl font-bold mb-4">
+        {data.title || "Video Player"}
+      </h1>
 
-      {/* PREV / NEXT */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => setIndex(i => Math.max(0, i - 1))}
-          disabled={index === 0}
-          className="px-3 py-1 border rounded disabled:opacity-40"
-        >
-          ⬅ Prev
-        </button>
-
-        <span className="text-sm font-medium">
-          Episode {index + 1} / {episodes.length}
-        </span>
-
-        <button
-          onClick={() =>
-            setIndex(i => Math.min(episodes.length - 1, i + 1))
-          }
-          disabled={index === episodes.length - 1}
-          className="px-3 py-1 border rounded disabled:opacity-40"
-        >
-          Next ➡
-        </button>
-      </div>
-
-      {/* 📺 EPISODE LIST */}
-      <div className="flex flex-wrap gap-2">
-        {episodes.map((ep, i) => (
-          <button
-            key={ep.episodeNo ?? i}
-            onClick={() => setIndex(i)}
-            className={`px-3 py-1 text-xs rounded border transition
-              ${
-                i === index
-                  ? "bg-black text-white border-black"
-                  : "bg-white hover:bg-gray-100"
-              }`}
-          >
-            Ep {ep.episodeNo ?? i + 1}
-          </button>
-        ))}
-      </div>
-    </div>
+      <Player episodes={data.episodes} />
+    </main>
   );
 }
