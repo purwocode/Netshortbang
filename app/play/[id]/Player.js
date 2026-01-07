@@ -6,42 +6,39 @@ import Hls from "hls.js";
 export default function Player({ episodes }) {
   const [index, setIndex] = useState(0);
   const videoRef = useRef(null);
+  const hlsRef = useRef(null);
 
   const current = episodes[index];
   const src = current?.playVoucher;
+  const subtitles = current?.subtitleList || [];
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // RESET
+    // 🔄 Cleanup HLS lama
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    // 🔄 Reset video
     video.pause();
     video.removeAttribute("src");
     video.load();
 
-    // HLS (.m3u8)
-    if (src.includes(".m3u8")) {
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-        });
-
-        hls.loadSource(src);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
-        });
-
-        return () => hls.destroy();
-      }
+    // ▶️ Load video
+    if (src.includes(".m3u8") && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hlsRef.current = hls;
+    } else {
+      video.src = src;
     }
 
-    // MP4 fallback
-    video.src = src;
     video.play().catch(() => {});
-  }, [index, src]);
+  }, [index]); // ⚠️ jangan ubah dependency
 
   return (
     <div>
@@ -52,39 +49,58 @@ export default function Player({ episodes }) {
           controls
           playsInline
           className="w-full h-full"
-        />
+        >
+          {/* SUBTITLE */}
+          {subtitles.map((sub, i) => (
+            <track
+              key={i}
+              kind="subtitles"
+              src={`/api/subtitle?url=${encodeURIComponent(sub.url)}`}
+              srcLang={sub.subtitleLanguage?.split("_")[0] || "id"}
+              label={sub.subtitleLanguage || "Subtitle"}
+              default={i === 0}
+            />
+          ))}
+        </video>
       </div>
 
-      {/* CONTROLS */}
-      <div className="flex justify-between mb-3">
+      {/* PREV / NEXT */}
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setIndex(i => Math.max(0, i - 1))}
           disabled={index === 0}
+          className="px-3 py-1 border rounded disabled:opacity-40"
         >
           ⬅ Prev
         </button>
 
-        <span>
+        <span className="text-sm font-medium">
           Episode {index + 1} / {episodes.length}
         </span>
 
         <button
-          onClick={() => setIndex(i => Math.min(episodes.length - 1, i + 1))}
+          onClick={() =>
+            setIndex(i => Math.min(episodes.length - 1, i + 1))
+          }
           disabled={index === episodes.length - 1}
+          className="px-3 py-1 border rounded disabled:opacity-40"
         >
           Next ➡
         </button>
       </div>
 
-      {/* EPISODE LIST */}
+      {/* 📺 EPISODE LIST */}
       <div className="flex flex-wrap gap-2">
         {episodes.map((ep, i) => (
           <button
             key={ep.episodeNo ?? i}
             onClick={() => setIndex(i)}
-            className={`px-2 py-1 text-xs border rounded
-              ${i === index ? "bg-black text-white" : ""}
-            `}
+            className={`px-3 py-1 text-xs rounded border transition
+              ${
+                i === index
+                  ? "bg-black text-white border-black"
+                  : "bg-white hover:bg-gray-100"
+              }`}
           >
             Ep {ep.episodeNo ?? i + 1}
           </button>
