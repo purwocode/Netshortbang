@@ -14,13 +14,12 @@ async function searchAPI(query) {
   const data = await res.json();
   const items = data?.results ?? [];
 
-  // 🔹 Sesuaikan agar seragam untuk SearchClient
   return items.map(item => ({
     id: item.id,
-    source: item.source, // netshort / dramabox
+    source: item.source,
     title: item.title || "",
     cover: item.cover || "",
-    shortPlayId: item.id, // navigasi ke /play/[id]
+    shortPlayId: item.id,
     formatHeatScore: item.heat || null,
     starMessage: item.vip ? "VIP" : "",
     description: item.description || "",
@@ -28,16 +27,12 @@ async function searchAPI(query) {
   }));
 }
 
-// 🔹 Server component wajib return JSX
+// ✅ FIXED SERVER COMPONENT
 export default async function SearchPage(props) {
-  // ✅ HARUS await searchParams
-  const searchParams = await props.searchParams;
+  const searchParams = await props.searchParams; // 🔑 WAJIB
   const q = searchParams?.q ?? "";
+
   const results = q ? await searchAPI(q) : [];
 
-  return (
-    <main className="max-w-6xl mx-auto px-4 py-6">
-      <SearchClient defaultQuery={q} results={results} />
-    </main>
-  );
+  return <SearchClient defaultQuery={q} results={results} />;
 }
