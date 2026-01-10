@@ -12,7 +12,7 @@ async function getDetail(id) {
 }
 
 export default async function PlayPage({ params }) {
-  // ✅ unwrap params jika Promise
+  // ✅ unwrap params (Next.js terbaru)
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
@@ -25,12 +25,16 @@ export default async function PlayPage({ params }) {
   }
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-4">
-        {data.title || "Video Player"}
-      </h1>
+    <main className="pt-28 pb-12 bg-black text-white">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* TITLE */}
+        <h1 className="text-lg md:text-xl font-semibold mb-4 line-clamp-2">
+          {data.title || "Video Player"}
+        </h1>
 
-      <Player episodes={data.episodes} />
+        {/* PLAYER */}
+        <Player episodes={data.episodes} />
+      </div>
     </main>
   );
 }
