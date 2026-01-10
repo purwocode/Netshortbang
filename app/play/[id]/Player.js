@@ -12,24 +12,31 @@ export default function Player({ episodes }) {
   const src = current?.videos?.[0]?.url;
   const subtitles = current?.subtitle || [];
 
+  const handleEnded = () => {
+    setIndex(i => {
+      if (i < episodes.length - 1) return i + 1;
+      return i;
+    });
+  };
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // 🔄 Cleanup HLS lama
+    // cleanup HLS lama
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // 🔄 Reset video
+    // reset video
     video.pause();
     video.removeAttribute("src");
     video.load();
 
-    // ▶️ Load video
+    // load video
     if (src.includes(".m3u8") && Hls.isSupported()) {
-      const hls = new Hls();
+      const hls = new Hls({ enableWorker: true });
       hls.loadSource(src);
       hls.attachMedia(video);
       hlsRef.current = hls;
@@ -44,7 +51,13 @@ export default function Player({ episodes }) {
     <div>
       {/* VIDEO */}
       <div className="aspect-video bg-black rounded overflow-hidden mb-4">
-        <video ref={videoRef} controls playsInline className="w-full h-full">
+        <video
+          ref={videoRef}
+          controls
+          playsInline
+          className="w-full h-full"
+          onEnded={handleEnded}
+        >
           {subtitles.map((sub, i) => (
             <track
               key={i}
