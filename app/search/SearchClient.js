@@ -14,76 +14,75 @@ export default function SearchClient({ defaultQuery, results }) {
   }
 
   return (
-    <>
-      {/* FORM SEARCH */}
-      <form onSubmit={submit} className="mb-4 flex gap-2">
-        <input
-          type="text"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          placeholder="Cari drama / short..."
-          className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300"
-        />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
-        >
-          Cari
-        </button>
-      </form>
-
+    <div className="pt-28 pb-12 px-6 bg-black text-white">
       {/* EMPTY STATE */}
       {defaultQuery && results.length === 0 && (
-        <p className="text-gray-500">Tidak ada hasil</p>
+        <p className="text-sm text-white/60">
+          Tidak ada hasil untuk <span className="text-white">"{defaultQuery}"</span>
+        </p>
       )}
 
       {/* RESULT GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {results.map(item => (
           <div
             key={item.id}
             onClick={() => router.push(`/play/${item.id}`)}
-            className="cursor-pointer"
+            className="group cursor-pointer"
           >
             {/* COVER */}
-            <img
-              src={item.cover}
-              alt={item.title}
-              className="aspect-[3/4] object-cover rounded mb-2"
-            />
+            <div className="relative aspect-[3/4] rounded-md overflow-hidden bg-neutral-900">
+              <img
+                src={item.cover}
+                alt={item.title}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover
+                  group-hover:scale-105 transition duration-300"
+              />
 
-            {/* TITLE (support HTML dari API) */}
+              {/* HOVER OVERLAY */}
+              <div className="absolute inset-0 bg-black/60 opacity-0
+                group-hover:opacity-100 transition" />
+
+              {/* HEAT */}
+              {item.formatHeatScore && (
+                <div className="absolute top-2 left-2 text-[10px]
+                  bg-black/70 px-2 py-0.5 rounded text-orange-400">
+                  🔥 {item.formatHeatScore}
+                </div>
+              )}
+            </div>
+
+            {/* TITLE */}
             <h3
-              className="text-sm font-semibold line-clamp-2"
+              className="mt-2 text-sm font-medium line-clamp-2"
               dangerouslySetInnerHTML={{ __html: item.title }}
             />
 
-            {/* HEAT / SCORE */}
-            {item.formatHeatScore && (
-              <p className="text-xs text-orange-500">🔥 {item.formatHeatScore}</p>
-            )}
-
-            {/* VIP / STAR MESSAGE */}
+            {/* STAR / VIP */}
             {item.starMessage && (
-              <p className="text-xs text-gray-500">{item.starMessage}</p>
+              <p className="text-xs text-white/60 mt-0.5">
+                {item.starMessage}
+              </p>
             )}
 
             {/* TAGS */}
             {item.tags && item.tags.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-white/40 mt-0.5 line-clamp-1">
                 {item.tags.join(", ")}
               </p>
             )}
 
             {/* DESCRIPTION */}
             {item.description && (
-              <p className="text-xs text-gray-600 mt-1 line-clamp-3">
+              <p className="text-xs text-white/50 mt-1 line-clamp-2">
                 {item.description}
               </p>
             )}
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
