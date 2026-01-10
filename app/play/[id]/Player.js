@@ -13,10 +13,7 @@ export default function Player({ episodes }) {
   const subtitles = current?.subtitle || [];
 
   const handleEnded = () => {
-    setIndex(i => {
-      if (i < episodes.length - 1) return i + 1;
-      return i;
-    });
+    setIndex(i => (i < episodes.length - 1 ? i + 1 : i));
   };
 
   useEffect(() => {
@@ -29,12 +26,10 @@ export default function Player({ episodes }) {
       hlsRef.current = null;
     }
 
-    // reset video
     video.pause();
     video.removeAttribute("src");
     video.load();
 
-    // load video
     if (src.includes(".m3u8") && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
       hls.loadSource(src);
@@ -48,9 +43,9 @@ export default function Player({ episodes }) {
   }, [index, src]);
 
   return (
-    <div>
+    <div className="w-full">
       {/* VIDEO */}
-      <div className="aspect-video bg-black rounded overflow-hidden mb-4">
+      <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg mb-4">
         <video
           ref={videoRef}
           controls
@@ -71,24 +66,28 @@ export default function Player({ episodes }) {
         </video>
       </div>
 
-      {/* PREV / NEXT */}
-      <div className="flex items-center justify-between mb-4">
+      {/* CONTROLS */}
+      <div className="flex items-center justify-between mb-5 text-sm">
         <button
           onClick={() => setIndex(i => Math.max(0, i - 1))}
           disabled={index === 0}
-          className="px-3 py-1 border rounded disabled:opacity-40"
+          className="px-4 py-2 rounded bg-white/10 text-white
+                     hover:bg-white/20 disabled:opacity-40"
         >
           ⬅ Prev
         </button>
 
-        <span className="text-sm font-medium">
+        <span className="text-white/70">
           Episode {index + 1} / {episodes.length}
         </span>
 
         <button
-          onClick={() => setIndex(i => Math.min(episodes.length - 1, i + 1))}
+          onClick={() =>
+            setIndex(i => Math.min(episodes.length - 1, i + 1))
+          }
           disabled={index === episodes.length - 1}
-          className="px-3 py-1 border rounded disabled:opacity-40"
+          className="px-4 py-2 rounded bg-white/10 text-white
+                     hover:bg-white/20 disabled:opacity-40"
         >
           Next ➡
         </button>
@@ -100,11 +99,12 @@ export default function Player({ episodes }) {
           <button
             key={ep.id ?? i}
             onClick={() => setIndex(i)}
-            className={`px-3 py-1 text-xs rounded border transition ${
-              i === index
-                ? "bg-black text-white border-black"
-                : "bg-white hover:bg-gray-100"
-            }`}
+            className={`px-3 py-1.5 text-xs rounded-full border transition
+              ${
+                i === index
+                  ? "bg-white text-black border-white"
+                  : "border-white/20 text-white/70 hover:bg-white/10"
+              }`}
           >
             Ep {ep.episode ?? i + 1}
           </button>
