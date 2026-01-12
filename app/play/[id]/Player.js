@@ -1,24 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 
-export default function Player({ episodes }) {
+export default function Player({ episodes, backendBase }) {
   const [index, setIndex] = useState(0);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
   const current = episodes[index];
-  const src = current?.videos?.[0]?.url;
+  const rawSrc = current?.videos?.[0]?.url || "";
   const subtitles = current?.subtitle || [];
 
+  // ✅ Proxy video lewat backend (ini yang menghilangkan 403 hotlink)
+  const proxiedSrc = useMemo(() => {
+    if (!rawSrc) return "";
+    return `${backendBase}/api/stream?url=${encodeURIComponent(rawSrc)}`;
+  }, [rawSrc, backendBase]);
+
   const handleEnded = () => {
-    setIndex(i => (i < episodes.length - 1 ? i + 1 : i));
+    setIndex((i) => (i < episodes.length - 1 ? i + 1 : i));
   };
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src) return;
+    if (!video || !proxiedSrc) return;
 
     // cleanup HLS lama
     if (hlsRef.current) {
@@ -26,21 +32,24 @@ export default function Player({ episodes }) {
       hlsRef.current = null;
     }
 
+    // reset video
     video.pause();
     video.removeAttribute("src");
     video.load();
 
-    if (src.includes(".m3u8") && Hls.isSupported()) {
+    // MP4: aman via /api/stream
+    // .m3u8: bisa load playlist via /api/stream, tapi segment di dalam playlist butuh rewrite khusus
+    if (rawSrc.includes(".m3u8") && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
-      hls.loadSource(src);
+      hls.loadSource(proxiedSrc);
       hls.attachMedia(video);
       hlsRef.current = hls;
     } else {
-      video.src = src;
+      video.src = proxiedSrc;
     }
 
     video.play().catch(() => {});
-  }, [index, src]);
+  }, [index, rawSrc, proxiedSrc]);
 
   return (
     <div className="w-full">
@@ -57,7 +66,8 @@ export default function Player({ episodes }) {
             <track
               key={i}
               kind="subtitles"
-              src={`/api/subtitle?url=${encodeURIComponent(sub.url)}`}
+              // kalau /api/subtitle ada di backend juga, pakai backendBase
+              src={`${backendBase}/api/subtitle?url=${encodeURIComponent(sub.url)}`}
               srcLang={sub.lang?.split("_")[0] || "id"}
               label={sub.lang || "Subtitle"}
               default={i === 0}
@@ -69,10 +79,9 @@ export default function Player({ episodes }) {
       {/* CONTROLS */}
       <div className="flex items-center justify-between mb-5 text-sm">
         <button
-          onClick={() => setIndex(i => Math.max(0, i - 1))}
+          onClick={() => setIndex((i) => Math.max(0, i - 1))}
           disabled={index === 0}
-          className="px-4 py-2 rounded bg-white/10 text-white
-                     hover:bg-white/20 disabled:opacity-40"
+          className="px-4 py-2 rounded bg-white/10 text-white hover:bg-white/20 disabled:opacity-40"
         >
           ⬅ Prev
         </button>
@@ -82,12 +91,9 @@ export default function Player({ episodes }) {
         </span>
 
         <button
-          onClick={() =>
-            setIndex(i => Math.min(episodes.length - 1, i + 1))
-          }
+          onClick={() => setIndex((i) => Math.min(episodes.length - 1, i + 1))}
           disabled={index === episodes.length - 1}
-          className="px-4 py-2 rounded bg-white/10 text-white
-                     hover:bg-white/20 disabled:opacity-40"
+          className="px-4 py-2 rounded bg-white/10 text-white hover:bg-white/20 disabled:opacity-40"
         >
           Next ➡
         </button>
@@ -99,12 +105,11 @@ export default function Player({ episodes }) {
           <button
             key={ep.id ?? i}
             onClick={() => setIndex(i)}
-            className={`px-3 py-1.5 text-xs rounded-full border transition
-              ${
-                i === index
-                  ? "bg-white text-black border-white"
-                  : "border-white/20 text-white/70 hover:bg-white/10"
-              }`}
+            className={`px-3 py-1.5 text-xs rounded-full border transition ${
+              i === index
+                ? "bg-white text-black border-white"
+                : "border-white/20 text-white/70 hover:bg-white/10"
+            }`}
           >
             Ep {ep.episode ?? i + 1}
           </button>
