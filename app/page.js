@@ -2,7 +2,7 @@ import Link from "next/link";
 
 async function getHome() {
   const res = await fetch(
-    "https://apiku-bucin-campuran.vercel.app/api/home",
+    "https://sialan-five.vercel.app/api/home",
     { cache: "no-store" }
   );
 
