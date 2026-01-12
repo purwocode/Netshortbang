@@ -5,7 +5,7 @@ async function searchAPI(query) {
   if (!query) return [];
 
   const res = await fetch(
-    `https://sialan-five.vercel.app/api/search?q=${encodeURIComponent(query)}`,
+    `https://apiku-bucin-campuran.vercel.app/api/search?q=${encodeURIComponent(query)}`,
     { cache: "no-store" }
   );
 
