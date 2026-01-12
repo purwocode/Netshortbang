@@ -3,7 +3,7 @@ import Player from "./Player";
 
 async function getDetail(id) {
   const res = await fetch(
-    `https://apiku-bucin-campuran.vercel.app/api/episode?id=${id}`,
+    `https://sialan-five.vercel.app/api/episode?id=${id}`,
     { cache: "no-store" }
   );
 
